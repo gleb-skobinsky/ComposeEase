@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -29,10 +28,10 @@ import material3.ApplicationTheme
 
 @Composable
 @Preview
-fun App() {
-    var creativePanelHovered by remember { mutableStateOf(false) }
-    var creativePanelRect by remember { mutableStateOf<Rect?>(null) }
-    val generatedContent = mutableStateListOf<@Composable () -> Unit>()
+fun App(viewModel: MainViewModel) {
+    val creativePanelHovered by viewModel.creativePanelHovered.collectAsState()
+    val creativePanelRect by viewModel.creativePanelRect.collectAsState()
+    val generatedContent by viewModel.generatedContent.collectAsState()
     ApplicationTheme {
         Row(Modifier.fillMaxSize()) {
             // Left panel: for creating stuff
@@ -51,7 +50,7 @@ fun App() {
                         .background(if (creativePanelHovered) MaterialTheme.colorScheme.secondary else Color.Transparent)
                         .fillMaxSize()
                         .onGloballyPositioned { layoutCoordinates ->
-                            creativePanelRect = layoutCoordinates.boundsInRoot()
+                            viewModel.setCreativePanelRect(layoutCoordinates.boundsInRoot())
                         }
                 ) {
                     for (composable in generatedContent) {
@@ -86,7 +85,7 @@ fun App() {
                                 },
                                 onDragEnd = {
                                     if (creativePanelHovered) {
-                                        generatedContent.add {
+                                        viewModel.addContent {
                                             BasicTextField(
                                                 value = TextFieldValue(text = "Text Field"),
                                                 onValueChange = {},
@@ -94,11 +93,11 @@ fun App() {
                                             )
                                         }
                                     }
-                                    creativePanelHovered = false
+                                    viewModel.setCreativePanelHovered(false)
                                 },
                                 onDragCancel = {
                                     if (creativePanelHovered) {
-                                        generatedContent.add {
+                                        viewModel.addContent {
                                             BasicTextField(
                                                 value = TextFieldValue(text = "Text Field"),
                                                 onValueChange = {},
@@ -106,7 +105,7 @@ fun App() {
                                             )
                                         }
                                     }
-                                    creativePanelHovered = false
+                                    viewModel.setCreativePanelHovered(false)
                                 },
                                 onDrag = { _, offset ->
                                     buttonCoordX += offset.x
@@ -115,9 +114,7 @@ fun App() {
                                         val leftCondition = buttonCoordX > it.left && buttonCoordX < (it.left + it.size.width)
                                         val rightCondition = buttonCoordY > it.top && buttonCoordY < (it.top + it.size.height)
                                         val debugBool = leftCondition && rightCondition
-                                        // println("${it.left} < $buttonCoordX < ${it.left + it.size.width} && ${it.top} < $buttonCoordY < ${it.top + it.size.height}")
-                                        // println("$leftCondition $rightCondition")
-                                        creativePanelHovered = debugBool
+                                        viewModel.setCreativePanelHovered(debugBool)
                                     }
                                 }
                             )
@@ -154,6 +151,7 @@ fun main() = application {
         title = "ComposeEase",
         onCloseRequest = ::exitApplication
     ) {
-        App()
+        val viewModel = MainViewModel()
+        App(viewModel)
     }
 }
